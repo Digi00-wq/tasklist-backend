@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: tasklist
+    volumes:
+      # Speichert die DB-Daten dauerhaft auf dem Server, auch wenn der Container neustartet
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: . # Baut das Dockerfile aus diesem Ordner
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db # Backend startet erst, wenn die Datenbank da ist
+    environment:
+      # ÜBERSCHREIBT die application.properties!
+      # WICHTIG: Statt 'localhost' steht hier 'db', da Docker ein eigenes Netzwerk aufbaut
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/tasklist
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=secret
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
+volumes:
+  postgres_data:
