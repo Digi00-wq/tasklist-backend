@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController @RequestMapping("/api/task") @CrossOrigin(origins = "*", allowedHeaders = "*")
+@RestController @RequestMapping("/api/tasks") @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class TaskController {
 
     private final TaskService taskService;

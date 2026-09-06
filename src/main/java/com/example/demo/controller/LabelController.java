@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import com.example.demo.service.LabelService;
 import com.example.demo.entity.Label;
 
-@RestController @RequestMapping("/api/task") @CrossOrigin(origins = "*", allowedHeaders = "*")
+@RestController @RequestMapping("/api/labels") @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class LabelController {
 
     private final LabelService labelService;
