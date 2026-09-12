@@ -1,10 +1,14 @@
 package com.example.demo.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import com.example.demo.entity.Label;
 import com.example.demo.entity.Task;
+import com.example.demo.exception.LabelNotFoundException;
 import com.example.demo.exception.TaskNotFoundException;
+import com.example.demo.repository.LabelRepository;
 import com.example.demo.repository.TaskRepository;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -13,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final LabelRepository labelRepository;
 
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository, LabelRepository labelRepository) {
         this.taskRepository = taskRepository;
+        this.labelRepository = labelRepository;
     }
 
     @Transactional(readOnly = true)
@@ -30,6 +36,9 @@ public class TaskService {
 
     @Transactional
     public Task create(Task task) {
+        if (task.getLabels() != null) {
+            task.setLabels(resolveLabels(task.getLabels()));
+        }
         return taskRepository.save(task);
     }
 
@@ -38,7 +47,14 @@ public class TaskService {
         Task existingTask = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
 
         existingTask.setName(updatedTask.getName());
-        existingTask.setLabels(updatedTask.getLabels());
+        existingTask.setDescription(updatedTask.getDescription());
+        existingTask.setCompleted(updatedTask.getCompleted());
+        existingTask.setTimestamp(updatedTask.getTimestamp());
+
+        existingTask.getLabels().clear();
+        if (updatedTask.getLabels() != null) {
+            existingTask.getLabels().addAll(resolveLabels(updatedTask.getLabels()));
+        }
 
         return taskRepository.save(existingTask);
     }
@@ -46,6 +62,20 @@ public class TaskService {
     @Transactional
     public void delteTask(long id) {
         taskRepository.deleteById(id);
+    }
+
+    private List<Label> resolveLabels(List<Label> labels) {
+        List<Label> resolved = new ArrayList<>();
+        for (Label label : labels) {
+            if (label.getId() != null) {
+                Label existing = labelRepository.findById(label.getId())
+                        .orElseThrow(() -> new LabelNotFoundException(label.getId()));
+                resolved.add(existing);
+            } else {
+                resolved.add(labelRepository.save(label));
+            }
+        }
+        return resolved;
     }
 
 }

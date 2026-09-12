@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.entity.Label;
+import com.example.demo.exception.LabelNotFoundException;
 import com.example.demo.repository.LabelRepository;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +26,7 @@ public class LabelService {
 
     @Transactional(readOnly = true)
     public Label getById(long id) {
-        return labelRepository.findById(id).orElseThrow(() -> new RuntimeException());
-        // TODO: make custom exception
+        return labelRepository.findById(id).orElseThrow(() -> new LabelNotFoundException(id));
     }
 
     @Transactional
@@ -36,14 +36,19 @@ public class LabelService {
 
     @Transactional
     public Label update(long id, Label updatedLabel) {
-        Label existingLabel = labelRepository.findById(id).orElseThrow(() -> new RuntimeException());
+        Label existingLabel = labelRepository.findById(id).orElseThrow(() -> new LabelNotFoundException(id));
         existingLabel.setName(updatedLabel.getName());
+        existingLabel.setColor(updatedLabel.getColor());
 
         return labelRepository.save(existingLabel);
     }
 
     @Transactional
     public void delete(long id) {
+        if (!labelRepository.existsById(id)) {
+            throw new LabelNotFoundException(id);
+        }
+        labelRepository.deleteLabelAssociations(id);
         labelRepository.deleteById(id);
     }
 }
