@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +37,12 @@ public class TaskService {
 
     @Transactional
     public Task create(Task task) {
+        if (task.getCompleted() == null) {
+            task.setCompleted(false);
+        }
+        if (task.getTimestamp() == null) {
+            task.setTimestamp(Instant.now());
+        }
         if (task.getLabels() != null) {
             task.setLabels(resolveLabels(task.getLabels()));
         }
@@ -48,8 +55,12 @@ public class TaskService {
 
         existingTask.setName(updatedTask.getName());
         existingTask.setDescription(updatedTask.getDescription());
-        existingTask.setCompleted(updatedTask.getCompleted());
-        existingTask.setTimestamp(updatedTask.getTimestamp());
+        existingTask.setCompleted(updatedTask.getCompleted() != null ? updatedTask.getCompleted() : false);
+        if (updatedTask.getTimestamp() != null) {
+            existingTask.setTimestamp(updatedTask.getTimestamp());
+        } else if (existingTask.getTimestamp() == null) {
+            existingTask.setTimestamp(Instant.now());
+        }
 
         existingTask.getLabels().clear();
         if (updatedTask.getLabels() != null) {

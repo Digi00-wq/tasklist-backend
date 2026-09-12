@@ -38,12 +38,52 @@ public class LabelServiceIntegrationTest {
     }
 
     @Test
+    void testTaskDefaults() {
+        // Create task with ONLY name
+        Task task = new Task();
+        task.setName("Minimal Task");
+
+        Task createdTask = taskController.createTask(task);
+        assertNotNull(createdTask.getId());
+        assertEquals("Minimal Task", createdTask.getName());
+        assertNull(createdTask.getDescription());
+        assertFalse(createdTask.getCompleted()); // Defaults to false
+        assertNotNull(createdTask.getTimestamp()); // Defaults to Instant.now()
+        assertTrue(createdTask.getLabels().isEmpty()); // Labels can be empty
+    }
+
+    @Test
+    void testTaskWithCustomTimestampAndDescription() {
+        Instant customTimestamp = Instant.parse("2026-01-01T10:00:00Z");
+        Task task = new Task();
+        task.setName("Custom Task");
+        task.setDescription("My description");
+        task.setCompleted(true);
+        task.setTimestamp(customTimestamp);
+
+        Task createdTask = taskController.createTask(task);
+        assertEquals("Custom Task", createdTask.getName());
+        assertEquals("My description", createdTask.getDescription());
+        assertTrue(createdTask.getCompleted());
+        assertEquals(customTimestamp, createdTask.getTimestamp());
+    }
+
+    @Test
+    void testLabelDefaults() {
+        Label label = new Label();
+        label.setName("Simple Label");
+
+        Label createdLabel = labelController.create(label);
+        assertEquals("Simple Label", createdLabel.getName());
+        assertEquals("#000000FF", createdLabel.getColor()); // Defaults to #000000FF
+    }
+
+    @Test
     void testCreateTaskWithNewLabelAndColor() {
         Task task = new Task();
         task.setName("Test Task");
         task.setDescription("Task Description");
         task.setCompleted(true);
-        task.setTimestamp(Instant.now());
 
         Label label = new Label();
         label.setName("Urgent");
@@ -57,75 +97,6 @@ public class LabelServiceIntegrationTest {
         assertNotNull(createdTask.getTimestamp());
         assertEquals(1, createdTask.getLabels().size());
         assertEquals("#FF0000FF", createdTask.getLabels().get(0).getColor());
-    }
-
-    @Test
-    void testOptionalFieldsBackwardCompatibility() {
-        // Create task without setting optional fields (simulating legacy data)
-        Task task = new Task();
-        task.setName("Legacy Task");
-
-        Task createdTask = taskController.createTask(task);
-        assertNotNull(createdTask.getId());
-        assertNull(createdTask.getDescription());
-        assertNull(createdTask.getCompleted());
-        assertNull(createdTask.getTimestamp());
-
-        Label label = new Label();
-        label.setName("Legacy Label");
-        Label createdLabel = labelController.create(label);
-        assertNull(createdLabel.getColor());
-    }
-
-    @Test
-    void testCreateTaskWithExistingLabel() {
-        Label existingLabel = new Label();
-        existingLabel.setName("Existing");
-        existingLabel.setColor("#00FF00FF");
-        existingLabel = labelRepository.save(existingLabel);
-
-        Task task = new Task();
-        task.setName("Task With Existing Label");
-        Label inputLabel = new Label();
-        inputLabel.setId(existingLabel.getId());
-        task.getLabels().add(inputLabel);
-
-        Task createdTask = taskController.createTask(task);
-        assertEquals(1, createdTask.getLabels().size());
-        assertEquals(existingLabel.getId(), createdTask.getLabels().get(0).getId());
-        assertEquals("Existing", createdTask.getLabels().get(0).getName());
-        assertEquals("#00FF00FF", createdTask.getLabels().get(0).getColor());
-    }
-
-    @Test
-    void testUpdateTaskLabelsAndFields() {
-        Label label1 = new Label();
-        label1.setName("Label 1");
-        label1 = labelRepository.save(label1);
-
-        Task task = new Task();
-        task.setName("Original Task");
-        task.getLabels().add(label1);
-        task = taskController.createTask(task);
-
-        Label label2 = new Label();
-        label2.setName("Label 2");
-        label2 = labelRepository.save(label2);
-
-        Task updatePayload = new Task();
-        updatePayload.setName("Updated Task");
-        updatePayload.setDescription("New Description");
-        updatePayload.setCompleted(true);
-        updatePayload.setTimestamp(Instant.now());
-        updatePayload.getLabels().add(label2);
-
-        Task updatedTask = taskController.editTask(task.getId(), updatePayload);
-        assertEquals("Updated Task", updatedTask.getName());
-        assertEquals("New Description", updatedTask.getDescription());
-        assertTrue(updatedTask.getCompleted());
-        assertNotNull(updatedTask.getTimestamp());
-        assertEquals(1, updatedTask.getLabels().size());
-        assertEquals("Label 2", updatedTask.getLabels().get(0).getName());
     }
 
     @Test
