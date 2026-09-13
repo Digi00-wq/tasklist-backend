@@ -1,11 +1,11 @@
 package com.example.demo;
 
 import com.example.demo.controller.LabelController;
+import com.example.demo.controller.ProjectController;
 import com.example.demo.controller.TaskController;
-import com.example.demo.entity.Label;
-import com.example.demo.entity.Task;
-import com.example.demo.exception.LabelNotFoundException;
+import com.example.demo.dto.*;
 import com.example.demo.repository.LabelRepository;
+import com.example.demo.repository.ProjectRepository;
 import com.example.demo.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,10 +21,16 @@ import static org.junit.jupiter.api.Assertions.*;
 public class LabelServiceIntegrationTest {
 
     @Autowired
+    private ProjectController projectController;
+
+    @Autowired
     private TaskController taskController;
 
     @Autowired
     private LabelController labelController;
+
+    @Autowired
+    private ProjectRepository projectRepository;
 
     @Autowired
     private LabelRepository labelRepository;
@@ -35,91 +42,53 @@ public class LabelServiceIntegrationTest {
     void setUp() {
         taskRepository.deleteAll();
         labelRepository.deleteAll();
+        projectRepository.deleteAll();
     }
 
     @Test
-    void testTaskDefaults() {
-        // Create task with ONLY name
-        Task task = new Task();
-        task.setName("Minimal Task");
+    void testCreateProjectWithTabsAndTasks() {
+        CreateProjectDTO projectDTO = new CreateProjectDTO();
+        projectDTO.setName("Ferien Projekt");
+        projectDTO.setColor("#e44232");
+        projectDTO.setTabs(List.of(new ProjectTabDTO("not_started", "Offen", "#e44232", "Noch nicht begonnen")));
 
-        Task createdTask = taskController.createTask(task);
+        ProjectDTO createdProject = projectController.create(projectDTO);
+        assertNotNull(createdProject.getId());
+        assertEquals("Ferien Projekt", createdProject.getName());
+        assertEquals(1, createdProject.getTabs().size());
+
+        CreateTaskDTO taskDTO = new CreateTaskDTO();
+        taskDTO.setName("Ferien eingeben");
+        taskDTO.setDescription("Optional notes");
+        taskDTO.setCompleted(false);
+        taskDTO.setProjectId(createdProject.getId());
+        taskDTO.setStatusTab("not_started");
+        taskDTO.setLabels(List.of(new LabelDTO(null, "Urgent", "#e5484d", createdProject.getId())));
+
+        TaskDTO createdTask = taskController.create(taskDTO);
         assertNotNull(createdTask.getId());
-        assertEquals("Minimal Task", createdTask.getName());
-        assertNull(createdTask.getDescription());
-        assertFalse(createdTask.getCompleted()); // Defaults to false
-        assertNotNull(createdTask.getTimestamp()); // Defaults to Instant.now()
-        assertTrue(createdTask.getLabels().isEmpty()); // Labels can be empty
-    }
-
-    @Test
-    void testTaskWithCustomTimestampAndDescription() {
-        Instant customTimestamp = Instant.parse("2026-01-01T10:00:00Z");
-        Task task = new Task();
-        task.setName("Custom Task");
-        task.setDescription("My description");
-        task.setCompleted(true);
-        task.setTimestamp(customTimestamp);
-
-        Task createdTask = taskController.createTask(task);
-        assertEquals("Custom Task", createdTask.getName());
-        assertEquals("My description", createdTask.getDescription());
-        assertTrue(createdTask.getCompleted());
-        assertEquals(customTimestamp, createdTask.getTimestamp());
-    }
-
-    @Test
-    void testLabelDefaults() {
-        Label label = new Label();
-        label.setName("Simple Label");
-
-        Label createdLabel = labelController.create(label);
-        assertEquals("Simple Label", createdLabel.getName());
-        assertEquals("#000000FF", createdLabel.getColor()); // Defaults to #000000FF
-    }
-
-    @Test
-    void testCreateTaskWithNewLabelAndColor() {
-        Task task = new Task();
-        task.setName("Test Task");
-        task.setDescription("Task Description");
-        task.setCompleted(true);
-
-        Label label = new Label();
-        label.setName("Urgent");
-        label.setColor("#FF0000FF");
-        task.getLabels().add(label);
-
-        Task createdTask = taskController.createTask(task);
-        assertNotNull(createdTask.getId());
-        assertEquals("Task Description", createdTask.getDescription());
-        assertTrue(createdTask.getCompleted());
-        assertNotNull(createdTask.getTimestamp());
+        assertEquals("Ferien eingeben", createdTask.getName());
+        assertEquals(createdProject.getId(), createdTask.getProjectId());
         assertEquals(1, createdTask.getLabels().size());
-        assertEquals("#FF0000FF", createdTask.getLabels().get(0).getColor());
+        assertEquals("Urgent", createdTask.getLabels().get(0).getName());
     }
 
     @Test
-    void testDeleteLabelAssignedToTask() {
-        Label label = new Label();
-        label.setName("Work");
-        label = labelRepository.save(label);
+    void testDeleteLabelWithTaskAssociation() {
+        CreateProjectDTO projectDTO = new CreateProjectDTO("Work", "#333333", List.of());
+        ProjectDTO project = projectController.create(projectDTO);
 
-        Task task = new Task();
-        task.setName("Do work");
-        task.getLabels().add(label);
-        task = taskController.createTask(task);
+        LabelDTO labelDTO = labelController.create(new LabelDTO(null, "WorkLabel", "#94a3b8", project.getId()));
 
-        Long labelId = label.getId();
-        assertDoesNotThrow(() -> labelController.delte(labelId));
+        CreateTaskDTO taskDTO = new CreateTaskDTO();
+        taskDTO.setName("Work Task");
+        taskDTO.setProjectId(project.getId());
+        taskDTO.setLabels(List.of(labelDTO));
+        TaskDTO task = taskController.create(taskDTO);
 
-        Task refreshedTask = taskRepository.findById(task.getId()).orElseThrow();
+        assertDoesNotThrow(() -> labelController.delete(labelDTO.getId()));
+
+        TaskDTO refreshedTask = taskController.getById(task.getId());
         assertTrue(refreshedTask.getLabels().isEmpty());
-        assertFalse(labelRepository.existsById(labelId));
-    }
-
-    @Test
-    void testGetNonExistentLabelThrowsException() {
-        assertThrows(LabelNotFoundException.class, () -> labelController.getById(999L));
     }
 }

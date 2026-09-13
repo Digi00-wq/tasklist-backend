@@ -1,92 +1,171 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.CreateTaskDTO;
+import com.example.demo.dto.LabelDTO;
+import com.example.demo.dto.TaskDTO;
+import com.example.demo.entity.Label;
+import com.example.demo.entity.Project;
+import com.example.demo.entity.Task;
+import com.example.demo.exception.ProjectNotFoundException;
+import com.example.demo.exception.TaskNotFoundException;
+import com.example.demo.repository.LabelRepository;
+import com.example.demo.repository.ProjectRepository;
+import com.example.demo.repository.TaskRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.springframework.stereotype.Service;
-import com.example.demo.entity.Label;
-import com.example.demo.entity.Task;
-import com.example.demo.exception.LabelNotFoundException;
-import com.example.demo.exception.TaskNotFoundException;
-import com.example.demo.repository.LabelRepository;
-import com.example.demo.repository.TaskRepository;
-
-import org.springframework.transaction.annotation.Transactional;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
     private final LabelRepository labelRepository;
 
-    public TaskService(TaskRepository taskRepository, LabelRepository labelRepository) {
+    public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository, LabelRepository labelRepository) {
         this.taskRepository = taskRepository;
+        this.projectRepository = projectRepository;
         this.labelRepository = labelRepository;
     }
 
     @Transactional(readOnly = true)
-    public List<Task> getAll() {
-        return taskRepository.findAll();
+    public List<TaskDTO> getAll(Long projectId, String statusTab) {
+        List<Task> tasks;
+        if (projectId != null && statusTab != null) {
+            tasks = taskRepository.findByProjectIdAndStatusTab(projectId, statusTab);
+        } else if (projectId != null) {
+            tasks = taskRepository.findByProjectId(projectId);
+        } else if (statusTab != null) {
+            tasks = taskRepository.findByStatusTab(statusTab);
+        } else {
+            tasks = taskRepository.findAll();
+        }
+        return tasks.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public Task getById(long id) {
-        return taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
+    public TaskDTO getById(Long id) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
+        return toDTO(task);
     }
 
     @Transactional
-    public Task create(Task task) {
-        if (task.getCompleted() == null) {
-            task.setCompleted(false);
+    public TaskDTO create(CreateTaskDTO dto) {
+        Task task = new Task();
+        task.setName(dto.getName());
+        task.setDescription(dto.getDescription());
+        task.setCompleted(dto.getCompleted() != null ? dto.getCompleted() : false);
+        task.setTimestamp(dto.getTimestamp() != null ? dto.getTimestamp() : Instant.now());
+        task.setStatusTab(dto.getStatusTab());
+
+        if (dto.getProjectId() != null) {
+            Project project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new ProjectNotFoundException(dto.getProjectId()));
+            task.setProject(project);
         }
-        if (task.getTimestamp() == null) {
-            task.setTimestamp(Instant.now());
+
+        if (dto.getLabels() != null) {
+            task.setLabels(resolveLabels(dto.getLabels(), task.getProject()));
         }
-        if (task.getLabels() != null) {
-            task.setLabels(resolveLabels(task.getLabels()));
-        }
-        return taskRepository.save(task);
+
+        Task saved = taskRepository.save(task);
+        return toDTO(saved);
     }
 
     @Transactional
-    public Task update(long id, Task updatedTask) {
-        Task existingTask = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
-
-        existingTask.setName(updatedTask.getName());
-        existingTask.setDescription(updatedTask.getDescription());
-        existingTask.setCompleted(updatedTask.getCompleted() != null ? updatedTask.getCompleted() : false);
-        if (updatedTask.getTimestamp() != null) {
-            existingTask.setTimestamp(updatedTask.getTimestamp());
-        } else if (existingTask.getTimestamp() == null) {
-            existingTask.setTimestamp(Instant.now());
+    public TaskDTO update(Long id, CreateTaskDTO dto) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
+        task.setName(dto.getName());
+        task.setDescription(dto.getDescription());
+        if (dto.getCompleted() != null) {
+            task.setCompleted(dto.getCompleted());
+        }
+        if (dto.getTimestamp() != null) {
+            task.setTimestamp(dto.getTimestamp());
+        }
+        if (dto.getStatusTab() != null) {
+            task.setStatusTab(dto.getStatusTab());
         }
 
-        existingTask.getLabels().clear();
-        if (updatedTask.getLabels() != null) {
-            existingTask.getLabels().addAll(resolveLabels(updatedTask.getLabels()));
+        if (dto.getProjectId() != null) {
+            Project project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new ProjectNotFoundException(dto.getProjectId()));
+            task.setProject(project);
         }
 
-        return taskRepository.save(existingTask);
+        task.getLabels().clear();
+        if (dto.getLabels() != null) {
+            task.getLabels().addAll(resolveLabels(dto.getLabels(), task.getProject()));
+        }
+
+        Task saved = taskRepository.save(task);
+        return toDTO(saved);
     }
 
     @Transactional
-    public void delteTask(long id) {
+    public TaskDTO toggleCompleted(Long id, Boolean completed) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
+        task.setCompleted(completed != null ? completed : !task.getCompleted());
+        Task saved = taskRepository.save(task);
+        return toDTO(saved);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new TaskNotFoundException(id);
+        }
         taskRepository.deleteById(id);
     }
 
-    private List<Label> resolveLabels(List<Label> labels) {
+    private List<Label> resolveLabels(List<LabelDTO> labelDTOs, Project project) {
         List<Label> resolved = new ArrayList<>();
-        for (Label label : labels) {
-            if (label.getId() != null) {
-                Label existing = labelRepository.findById(label.getId())
-                        .orElseThrow(() -> new LabelNotFoundException(label.getId()));
-                resolved.add(existing);
+        for (LabelDTO dto : labelDTOs) {
+            if (dto.getId() != null) {
+                Label existing = labelRepository.findById(dto.getId()).orElse(null);
+                if (existing != null) {
+                    resolved.add(existing);
+                } else {
+                    Label newLabel = new Label();
+                    newLabel.setName(dto.getName());
+                    newLabel.setColor(dto.getColor());
+                    newLabel.setProject(project);
+                    resolved.add(labelRepository.save(newLabel));
+                }
             } else {
-                resolved.add(labelRepository.save(label));
+                Label newLabel = new Label();
+                newLabel.setName(dto.getName());
+                newLabel.setColor(dto.getColor());
+                newLabel.setProject(project);
+                resolved.add(labelRepository.save(newLabel));
             }
         }
         return resolved;
     }
 
+    public TaskDTO toDTO(Task task) {
+        if (task == null) return null;
+        Long projectId = task.getProject() != null ? task.getProject().getId() : null;
+
+        List<LabelDTO> labelDTOs = task.getLabels() != null ?
+                task.getLabels().stream()
+                        .map(lbl -> new LabelDTO(lbl.getId(), lbl.getName(), lbl.getColor(),
+                                lbl.getProject() != null ? lbl.getProject().getId() : null))
+                        .collect(Collectors.toList()) : List.of();
+
+        return new TaskDTO(
+                task.getId(),
+                task.getName(),
+                task.getDescription(),
+                task.getCompleted(),
+                task.getTimestamp(),
+                task.getStatusTab(),
+                projectId,
+                labelDTOs
+        );
+    }
 }

@@ -1,13 +1,15 @@
 package com.example.demo.controller;
 
-import java.util.List;
-
+import com.example.demo.dto.LabelDTO;
+import com.example.demo.service.LabelService;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.demo.service.LabelService;
-import com.example.demo.entity.Label;
+import java.util.List;
 
-@RestController @RequestMapping("/api/labels") @CrossOrigin(origins = "*", allowedHeaders = "*")
+@RestController
+@RequestMapping("/api/labels")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class LabelController {
 
     private final LabelService labelService;
@@ -17,28 +19,29 @@ public class LabelController {
     }
 
     @GetMapping
-    public List<Label> getAll() {
-        return labelService.getAll();
+    public List<LabelDTO> getAll(@RequestParam(required = false) Long projectId) {
+        return labelService.getAll(projectId);
     }
 
     @GetMapping("/{id}")
-    public Label getById(@PathVariable long id) {
+    public LabelDTO getById(@PathVariable Long id) {
         return labelService.getById(id);
     }
 
     @PostMapping
-    public Label create(@RequestBody Label label) {
-        return labelService.create(label);
+    @ResponseStatus(HttpStatus.CREATED)
+    public LabelDTO create(@RequestBody LabelDTO dto) {
+        return labelService.create(dto);
     }
 
     @PutMapping("/{id}")
-    public Label update(@PathVariable long id, @RequestBody Label label) {
-        return labelService.update(id, label);
+    public LabelDTO update(@PathVariable Long id, @RequestBody LabelDTO dto) {
+        return labelService.update(id, dto);
     }
 
     @DeleteMapping("/{id}")
-    public void delte(@PathVariable long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
         labelService.delete(id);
     }
-
 }

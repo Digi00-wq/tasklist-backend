@@ -1,23 +1,16 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.CreateTaskDTO;
+import com.example.demo.dto.TaskDTO;
+import com.example.demo.service.TaskService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
-import com.example.demo.entity.Task;
-import com.example.demo.service.TaskService;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-
-@RestController @RequestMapping("/api/tasks") @CrossOrigin(origins = "*", allowedHeaders = "*")
+@RestController
+@RequestMapping("/api/tasks")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class TaskController {
 
     private final TaskService taskService;
@@ -27,28 +20,35 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<Task> getAll() {
-        return taskService.getAll();
+    public List<TaskDTO> getAll(@RequestParam(required = false) Long projectId,
+                                 @RequestParam(required = false) String statusTab) {
+        return taskService.getAll(projectId, statusTab);
     }
 
     @GetMapping("/{id}")
-    public Task getTask(@PathVariable long id) {
+    public TaskDTO getById(@PathVariable Long id) {
         return taskService.getById(id);
     }
 
-    @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public Task createTask(@RequestBody Task task) {
-        return taskService.create(task);
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public TaskDTO create(@RequestBody CreateTaskDTO dto) {
+        return taskService.create(dto);
     }
 
     @PutMapping("/{id}")
-    public Task editTask(@PathVariable long id, @RequestBody Task task) {
-        return taskService.update(id, task);
+    public TaskDTO update(@PathVariable Long id, @RequestBody CreateTaskDTO dto) {
+        return taskService.update(id, dto);
+    }
+
+    @PatchMapping("/{id}/complete")
+    public TaskDTO toggleComplete(@PathVariable Long id, @RequestParam(required = false) Boolean completed) {
+        return taskService.toggleCompleted(id, completed);
     }
 
     @DeleteMapping("/{id}")
-    public void delteTask(@PathVariable long id) {
-        taskService.delteTask(id);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        taskService.delete(id);
     }
-
 }
