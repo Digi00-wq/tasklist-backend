@@ -26,7 +26,8 @@ public class Project {
 
     private String color;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "project_tabs", joinColumns = @JoinColumn(name = "project_id"))
     @OrderBy("position ASC")
     private List<ProjectTab> tabs = new ArrayList<>();
 

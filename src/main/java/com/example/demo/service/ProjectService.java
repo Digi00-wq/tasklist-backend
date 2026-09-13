@@ -45,7 +45,6 @@ public class ProjectService {
                 tab.setSubtitle(tabDTO.getSubtitle());
                 tab.setColor(tabDTO.getColor());
                 tab.setPosition(tabDTO.getPosition() != null ? tabDTO.getPosition() : pos);
-                tab.setProject(project);
                 project.getTabs().add(tab);
                 pos++;
             }
@@ -70,7 +69,6 @@ public class ProjectService {
                 tab.setSubtitle(tabDTO.getSubtitle());
                 tab.setColor(tabDTO.getColor());
                 tab.setPosition(tabDTO.getPosition() != null ? tabDTO.getPosition() : pos);
-                tab.setProject(project);
                 project.getTabs().add(tab);
                 pos++;
             }
