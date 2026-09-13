@@ -4,6 +4,7 @@ import com.example.demo.dto.CreateProjectDTO;
 import com.example.demo.dto.ProjectDTO;
 import com.example.demo.service.ProjectService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,29 +21,30 @@ public class ProjectController {
     }
 
     @GetMapping
-    public List<ProjectDTO> getAll() {
-        return projectService.getAll();
+    public ResponseEntity<List<ProjectDTO>> getAll() {
+        return ResponseEntity.ok(projectService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ProjectDTO getById(@PathVariable Long id) {
-        return projectService.getById(id);
+    public ResponseEntity<ProjectDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(projectService.getById(id));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public ProjectDTO create(@RequestBody CreateProjectDTO dto) {
-        return projectService.create(dto);
+    public ResponseEntity<ProjectDTO> create(@RequestBody CreateProjectDTO dto) {
+        ProjectDTO created = projectService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ProjectDTO update(@PathVariable Long id, @RequestBody CreateProjectDTO dto) {
-        return projectService.update(id, dto);
+    public ResponseEntity<ProjectDTO> updateProject(@PathVariable Long id, @RequestBody CreateProjectDTO dto) {
+        ProjectDTO updated = projectService.update(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         projectService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.dto.LabelDTO;
 import com.example.demo.service.LabelService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,29 +20,30 @@ public class LabelController {
     }
 
     @GetMapping
-    public List<LabelDTO> getAll(@RequestParam(required = false) Long projectId) {
-        return labelService.getAll(projectId);
+    public ResponseEntity<List<LabelDTO>> getAll(@RequestParam(required = false) Long projectId) {
+        return ResponseEntity.ok(labelService.getAll(projectId));
     }
 
     @GetMapping("/{id}")
-    public LabelDTO getById(@PathVariable Long id) {
-        return labelService.getById(id);
+    public ResponseEntity<LabelDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(labelService.getById(id));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public LabelDTO create(@RequestBody LabelDTO dto) {
-        return labelService.create(dto);
+    public ResponseEntity<LabelDTO> create(@RequestBody LabelDTO dto) {
+        LabelDTO created = labelService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public LabelDTO update(@PathVariable Long id, @RequestBody LabelDTO dto) {
-        return labelService.update(id, dto);
+    public ResponseEntity<LabelDTO> update(@PathVariable Long id, @RequestBody LabelDTO dto) {
+        LabelDTO updated = labelService.update(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         labelService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -4,6 +4,7 @@ import com.example.demo.dto.CreateTaskDTO;
 import com.example.demo.dto.TaskDTO;
 import com.example.demo.service.TaskService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,35 +21,42 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<TaskDTO> getAll(@RequestParam(required = false) Long projectId,
-                                 @RequestParam(required = false) String statusTab) {
-        return taskService.getAll(projectId, statusTab);
+    public ResponseEntity<List<TaskDTO>> getAll(@RequestParam(required = false) Long projectId,
+                                                @RequestParam(required = false) String statusTab) {
+        return ResponseEntity.ok(taskService.getAll(projectId, statusTab));
     }
 
     @GetMapping("/{id}")
-    public TaskDTO getById(@PathVariable Long id) {
-        return taskService.getById(id);
+    public ResponseEntity<TaskDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(taskService.getById(id));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public TaskDTO create(@RequestBody CreateTaskDTO dto) {
-        return taskService.create(dto);
+    public ResponseEntity<TaskDTO> create(@RequestBody CreateTaskDTO dto) {
+        TaskDTO created = taskService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public TaskDTO update(@PathVariable Long id, @RequestBody CreateTaskDTO dto) {
-        return taskService.update(id, dto);
+    public ResponseEntity<TaskDTO> updateTask(@PathVariable Long id, @RequestBody TaskDTO dto) {
+        TaskDTO updated = taskService.update(id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<TaskDTO> patchTask(@PathVariable Long id, @RequestBody TaskDTO dto) {
+        TaskDTO updated = taskService.patch(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @PatchMapping("/{id}/complete")
-    public TaskDTO toggleComplete(@PathVariable Long id, @RequestParam(required = false) Boolean completed) {
-        return taskService.toggleCompleted(id, completed);
+    public ResponseEntity<TaskDTO> toggleComplete(@PathVariable Long id, @RequestParam(required = false) Boolean completed) {
+        return ResponseEntity.ok(taskService.toggleCompleted(id, completed));
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         taskService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

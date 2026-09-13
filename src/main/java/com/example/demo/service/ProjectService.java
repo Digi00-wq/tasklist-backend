@@ -37,9 +37,18 @@ public class ProjectService {
         project.setName(dto.getName());
         project.setColor(dto.getColor());
         if (dto.getTabs() != null) {
-            project.setTabs(dto.getTabs().stream()
-                    .map(t -> new ProjectTab(t.getId(), t.getName(), t.getColor(), t.getSubtitle()))
-                    .collect(Collectors.toList()));
+            int pos = 0;
+            for (ProjectTabDTO tabDTO : dto.getTabs()) {
+                ProjectTab tab = new ProjectTab();
+                tab.setId(tabDTO.getId() != null ? tabDTO.getId() : "tab_" + System.currentTimeMillis() + "_" + pos);
+                tab.setName(tabDTO.getName());
+                tab.setSubtitle(tabDTO.getSubtitle());
+                tab.setColor(tabDTO.getColor());
+                tab.setPosition(tabDTO.getPosition() != null ? tabDTO.getPosition() : pos);
+                tab.setProject(project);
+                project.getTabs().add(tab);
+                pos++;
+            }
         }
         Project saved = projectRepository.save(project);
         return toDTO(saved);
@@ -50,11 +59,21 @@ public class ProjectService {
         Project project = projectRepository.findById(id).orElseThrow(() -> new ProjectNotFoundException(id));
         project.setName(dto.getName());
         project.setColor(dto.getColor());
+
         project.getTabs().clear();
         if (dto.getTabs() != null) {
-            project.getTabs().addAll(dto.getTabs().stream()
-                    .map(t -> new ProjectTab(t.getId(), t.getName(), t.getColor(), t.getSubtitle()))
-                    .collect(Collectors.toList()));
+            int pos = 0;
+            for (ProjectTabDTO tabDTO : dto.getTabs()) {
+                ProjectTab tab = new ProjectTab();
+                tab.setId(tabDTO.getId() != null ? tabDTO.getId() : "tab_" + System.currentTimeMillis() + "_" + pos);
+                tab.setName(tabDTO.getName());
+                tab.setSubtitle(tabDTO.getSubtitle());
+                tab.setColor(tabDTO.getColor());
+                tab.setPosition(tabDTO.getPosition() != null ? tabDTO.getPosition() : pos);
+                tab.setProject(project);
+                project.getTabs().add(tab);
+                pos++;
+            }
         }
         Project saved = projectRepository.save(project);
         return toDTO(saved);
@@ -73,7 +92,7 @@ public class ProjectService {
 
         List<ProjectTabDTO> tabDTOs = project.getTabs() != null ?
                 project.getTabs().stream()
-                        .map(t -> new ProjectTabDTO(t.getId(), t.getName(), t.getColor(), t.getSubtitle()))
+                        .map(t -> new ProjectTabDTO(t.getId(), t.getName(), t.getSubtitle(), t.getColor(), t.getPosition()))
                         .collect(Collectors.toList()) : List.of();
 
         List<LabelDTO> labelDTOs = project.getLabels() != null ?

@@ -12,6 +12,7 @@ import lombok.Setter;
 public class ProjectTabDTO {
     private String id;
     private String name;
-    private String color;
     private String subtitle;
+    private String color;
+    private Integer position;
 }

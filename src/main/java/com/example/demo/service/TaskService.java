@@ -107,6 +107,70 @@ public class TaskService {
     }
 
     @Transactional
+    public TaskDTO update(Long id, TaskDTO dto) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
+        if (dto.getName() != null) {
+            task.setName(dto.getName());
+        }
+        task.setDescription(dto.getDescription());
+        if (dto.getCompleted() != null) {
+            task.setCompleted(dto.getCompleted());
+        }
+        if (dto.getTimestamp() != null) {
+            task.setTimestamp(dto.getTimestamp());
+        }
+        if (dto.getStatusTab() != null) {
+            task.setStatusTab(dto.getStatusTab());
+        }
+
+        if (dto.getProjectId() != null) {
+            Project project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new ProjectNotFoundException(dto.getProjectId()));
+            task.setProject(project);
+        }
+
+        if (dto.getLabels() != null) {
+            task.getLabels().clear();
+            task.getLabels().addAll(resolveLabels(dto.getLabels(), task.getProject()));
+        }
+
+        Task saved = taskRepository.save(task);
+        return toDTO(saved);
+    }
+
+    @Transactional
+    public TaskDTO patch(Long id, TaskDTO dto) {
+        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
+        if (dto.getName() != null) {
+            task.setName(dto.getName());
+        }
+        if (dto.getDescription() != null) {
+            task.setDescription(dto.getDescription());
+        }
+        if (dto.getCompleted() != null) {
+            task.setCompleted(dto.getCompleted());
+        }
+        if (dto.getTimestamp() != null) {
+            task.setTimestamp(dto.getTimestamp());
+        }
+        if (dto.getStatusTab() != null) {
+            task.setStatusTab(dto.getStatusTab());
+        }
+        if (dto.getProjectId() != null) {
+            Project project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new ProjectNotFoundException(dto.getProjectId()));
+            task.setProject(project);
+        }
+        if (dto.getLabels() != null) {
+            task.getLabels().clear();
+            task.getLabels().addAll(resolveLabels(dto.getLabels(), task.getProject()));
+        }
+
+        Task saved = taskRepository.save(task);
+        return toDTO(saved);
+    }
+
+    @Transactional
     public TaskDTO toggleCompleted(Long id, Boolean completed) {
         Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
         task.setCompleted(completed != null ? completed : !task.getCompleted());
