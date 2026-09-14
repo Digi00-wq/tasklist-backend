@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/labels")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class LabelController {
 
     private final LabelService labelService;
